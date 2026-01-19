@@ -48,16 +48,16 @@ class MiningOpsSensorEntityDescription(
     attr_fn: Callable[[dict[str, Any]], dict[str, Any]] | None = None
 
 
-def parse_hashrate(hashrate_str: str) -> float:
-    """Parse hashrate string to numeric H/s."""
+def parse_hashrate_nmminer(hashrate_str: str) -> float:
+    """Parse NMMiner hashrate string to KH/s."""
     try:
         hashrate_str = hashrate_str.replace("H/s", "").replace("h/s", "").strip()
         
         if "M" in hashrate_str or "m" in hashrate_str:
-            return float(hashrate_str.replace("M", "").replace("m", "").strip()) * 1000000
+            return float(hashrate_str.replace("M", "").replace("m", "").strip()) * 1000
         if "K" in hashrate_str or "k" in hashrate_str:
-            return float(hashrate_str.replace("K", "").replace("k", "").strip()) * 1000
-        return float(hashrate_str)
+            return float(hashrate_str.replace("K", "").replace("k", "").strip())
+        return float(hashrate_str) / 1000
     except (ValueError, AttributeError):
         return 0.0
 
@@ -102,14 +102,14 @@ def get_version_attributes(data: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _calculate_efficiency(data: dict[str, Any]) -> float:
-    """Calculate J/GH from power and hashrate."""
+def _calculate_bitaxe_efficiency(data: dict[str, Any]) -> float:
+    """Calculate J/GH from power and hashrate (for Bitaxe in GH/s)."""
     try:
         power = data.get("power", 0)
-        hashrate = data.get("hashRate", 0)
+        hashrate_hs = data.get("hashRate", 0)
         
-        if hashrate > 0:
-            hashrate_gh = hashrate / 1_000_000_000
+        if hashrate_hs > 0:
+            hashrate_gh = hashrate_hs / 1_000_000_000
             efficiency = power / hashrate_gh
             return round(efficiency, 2)
     except (ValueError, ZeroDivisionError):
@@ -118,17 +118,17 @@ def _calculate_efficiency(data: dict[str, Any]) -> float:
 
 
 # ============================================================================
-# NMMiner Sensor Types
+# NMMiner Sensor Types (KH/s)
 # ============================================================================
 
 NMMINER_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
     MiningOpsSensorEntityDescription(
         key="hashrate",
         name="Hashrate",
-        native_unit_of_measurement="H/s",
+        native_unit_of_measurement="KH/s",
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:chip",
-        value_fn=lambda data: parse_hashrate(data.get("HashRate", "0")),
+        value_fn=lambda data: round(parse_hashrate_nmminer(data.get("HashRate", "0")), 2),
     ),
     MiningOpsSensorEntityDescription(
         key="shares",
@@ -189,11 +189,10 @@ NMMINER_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
 )
 
 # ============================================================================
-# Bitaxe Sensor Types (26 sensors - comprehensive monitoring)
+# Bitaxe Sensor Types (GH/s)
 # ============================================================================
 
 BITAXE_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
-    # Device Info
     MiningOpsSensorEntityDescription(
         key="device_model",
         name="Device Model",
@@ -207,14 +206,13 @@ BITAXE_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
         value_fn=lambda data: "Yes" if data.get("stratum", {}).get("pools", [{}])[0].get("connected", False) else "No",
     ),
     
-    # Mining Stats
     MiningOpsSensorEntityDescription(
         key="hashrate",
         name="Hashrate",
-        native_unit_of_measurement="H/s",
+        native_unit_of_measurement="GH/s",
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:chip",
-        value_fn=lambda data: data.get("hashRate", 0),
+        value_fn=lambda data: round(data.get("hashRate", 0) / 1_000_000_000, 2),
     ),
     MiningOpsSensorEntityDescription(
         key="shares_accepted",
@@ -252,7 +250,6 @@ BITAXE_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
         value_fn=lambda data: data.get("poolDifficulty", 0),
     ),
     
-    # Block Detection
     MiningOpsSensorEntityDescription(
         key="blocks_found",
         name="Blocks Found (This Pool)",
@@ -268,7 +265,6 @@ BITAXE_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
         value_fn=lambda data: data.get("totalFoundBlocks", 0),
     ),
     
-    # Temperature
     MiningOpsSensorEntityDescription(
         key="temperature",
         name="Temperature",
@@ -286,7 +282,6 @@ BITAXE_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
         value_fn=lambda data: data.get("vrTemp", 0),
     ),
     
-    # Power
     MiningOpsSensorEntityDescription(
         key="power",
         name="Power Consumption",
@@ -296,7 +291,6 @@ BITAXE_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
         value_fn=lambda data: data.get("power", 0),
     ),
     
-    # Voltage
     MiningOpsSensorEntityDescription(
         key="core_voltage",
         name="Core Voltage",
@@ -314,7 +308,6 @@ BITAXE_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
         value_fn=lambda data: data.get("coreVoltageActual", 0),
     ),
     
-    # Cooling
     MiningOpsSensorEntityDescription(
         key="fan_speed",
         name="Fan Speed",
@@ -338,7 +331,6 @@ BITAXE_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
         value_fn=lambda data: data.get("autofanspeed", 0),
     ),
     
-    # System
     MiningOpsSensorEntityDescription(
         key="uptime",
         name="Uptime",
@@ -363,17 +355,15 @@ BITAXE_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
         value_fn=lambda data: data.get("asicCount", 0),
     ),
     
-    # Efficiency
     MiningOpsSensorEntityDescription(
         key="efficiency",
         name="Efficiency",
         native_unit_of_measurement="J/GH",
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:leaf",
-        value_fn=lambda data: _calculate_efficiency(data),
+        value_fn=lambda data: _calculate_bitaxe_efficiency(data),
     ),
     
-    # Network & Pool
     MiningOpsSensorEntityDescription(
         key="wifi_rssi",
         name="WiFi Signal Strength",
@@ -414,16 +404,12 @@ async def async_setup_entry(
     coordinator = entry_data["coordinator"]
     device_type = entry_data["device_type"]
     
-    # Track which miners we've created entities for
     created_miners: set[str] = set()
     
-    # Select sensor types based on device
     if device_type == DEVICE_TYPE_NMMINER:
         sensor_types = NMMINER_SENSOR_TYPES
-        manufacturer_key = "nmminer"
     else:
         sensor_types = BITAXE_SENSOR_TYPES
-        manufacturer_key = "bitaxe"
 
     @callback
     def async_add_miner_sensors() -> None:
@@ -462,10 +448,8 @@ async def async_setup_entry(
         if new_entities:
             async_add_entities(new_entities)
 
-    # Listen for new miners
     coordinator.async_add_listener(async_add_miner_sensors)
     
-    # Add any existing miners
     async_add_miner_sensors()
 
 
@@ -487,11 +471,9 @@ class MiningOpsSensor(CoordinatorEntity, SensorEntity):
         self._miner_ip = miner_ip
         self._device_type = device_type
         
-        # Entity ID - replace dots with underscores
         safe_ip = miner_ip.replace(".", "_")
         self._attr_unique_id = f"{device_type}_{safe_ip}_{description.key}"
         
-        # Device info
         if device_type == DEVICE_TYPE_NMMINER:
             device_name = f"NMMiner {miner_ip}"
             manufacturer = "NMTech"
@@ -508,7 +490,6 @@ class MiningOpsSensor(CoordinatorEntity, SensorEntity):
             "model": model,
         }
         
-        # Entity name
         self._attr_name = f"{device_name} {description.name}"
 
     @property
