@@ -189,10 +189,25 @@ NMMINER_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
 )
 
 # ============================================================================
-# Bitaxe Sensor Types
+# Bitaxe Sensor Types (26 sensors - comprehensive monitoring)
 # ============================================================================
 
 BITAXE_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
+    # Device Info
+    MiningOpsSensorEntityDescription(
+        key="device_model",
+        name="Device Model",
+        icon="mdi:information",
+        value_fn=lambda data: data.get("deviceModel", "Unknown"),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="connected",
+        name="Connected",
+        icon="mdi:lan-connect",
+        value_fn=lambda data: "Yes" if data.get("stratum", {}).get("pools", [{}])[0].get("connected", False) else "No",
+    ),
+    
+    # Mining Stats
     MiningOpsSensorEntityDescription(
         key="hashrate",
         name="Hashrate",
@@ -202,13 +217,58 @@ BITAXE_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
         value_fn=lambda data: data.get("hashRate", 0),
     ),
     MiningOpsSensorEntityDescription(
-        key="uptime",
-        name="Uptime",
-        native_unit_of_measurement=UnitOfTime.SECONDS,
+        key="shares_accepted",
+        name="Shares Accepted",
         state_class=SensorStateClass.TOTAL_INCREASING,
-        icon="mdi:clock-outline",
-        value_fn=lambda data: data.get("uptimeSeconds", 0),
+        icon="mdi:check-circle",
+        value_fn=lambda data: data.get("sharesAccepted", 0),
     ),
+    MiningOpsSensorEntityDescription(
+        key="shares_rejected",
+        name="Shares Rejected",
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        icon="mdi:close-circle",
+        value_fn=lambda data: data.get("sharesRejected", 0),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="best_diff",
+        name="Best Share Difficulty",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:star",
+        value_fn=lambda data: data.get("bestDiff", 0),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="total_best_diff",
+        name="Total Best Difficulty",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:star-circle",
+        value_fn=lambda data: data.get("stratum", {}).get("totalBestDiff", 0),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="pool_difficulty",
+        name="Pool Difficulty",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:target",
+        value_fn=lambda data: data.get("poolDifficulty", 0),
+    ),
+    
+    # Block Detection
+    MiningOpsSensorEntityDescription(
+        key="blocks_found",
+        name="Blocks Found (This Pool)",
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        icon="mdi:diamond",
+        value_fn=lambda data: data.get("foundBlocks", 0),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="total_blocks_found",
+        name="Total Blocks Found (All Time)",
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        icon="mdi:diamond-multiple",
+        value_fn=lambda data: data.get("totalFoundBlocks", 0),
+    ),
+    
+    # Temperature
     MiningOpsSensorEntityDescription(
         key="temperature",
         name="Temperature",
@@ -218,6 +278,16 @@ BITAXE_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
         value_fn=lambda data: data.get("temp", 0),
     ),
     MiningOpsSensorEntityDescription(
+        key="vr_temperature",
+        name="Voltage Regulator Temperature",
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        device_class=SensorDeviceClass.TEMPERATURE,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda data: data.get("vrTemp", 0),
+    ),
+    
+    # Power
+    MiningOpsSensorEntityDescription(
         key="power",
         name="Power Consumption",
         native_unit_of_measurement="W",
@@ -225,6 +295,75 @@ BITAXE_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda data: data.get("power", 0),
     ),
+    
+    # Voltage
+    MiningOpsSensorEntityDescription(
+        key="core_voltage",
+        name="Core Voltage",
+        native_unit_of_measurement="mV",
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda data: data.get("coreVoltage", 0),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="core_voltage_actual",
+        name="Core Voltage Actual",
+        native_unit_of_measurement="mV",
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda data: data.get("coreVoltageActual", 0),
+    ),
+    
+    # Cooling
+    MiningOpsSensorEntityDescription(
+        key="fan_speed",
+        name="Fan Speed",
+        native_unit_of_measurement=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:fan",
+        value_fn=lambda data: data.get("fanspeed", 0),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="fan_rpm",
+        name="Fan RPM",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:fan",
+        value_fn=lambda data: data.get("fanrpm", 0),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="autofanspeed",
+        name="Auto Fan Speed Mode",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:fan-auto",
+        value_fn=lambda data: data.get("autofanspeed", 0),
+    ),
+    
+    # System
+    MiningOpsSensorEntityDescription(
+        key="uptime",
+        name="Uptime",
+        native_unit_of_measurement=UnitOfTime.SECONDS,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        icon="mdi:clock-outline",
+        value_fn=lambda data: data.get("uptimeSeconds", 0),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="frequency",
+        name="Core Frequency",
+        native_unit_of_measurement="MHz",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:speedometer",
+        value_fn=lambda data: data.get("frequency", 0),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="asic_count",
+        name="ASIC Count",
+        icon="mdi:chip",
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda data: data.get("asicCount", 0),
+    ),
+    
+    # Efficiency
     MiningOpsSensorEntityDescription(
         key="efficiency",
         name="Efficiency",
@@ -233,12 +372,34 @@ BITAXE_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
         icon="mdi:leaf",
         value_fn=lambda data: _calculate_efficiency(data),
     ),
+    
+    # Network & Pool
     MiningOpsSensorEntityDescription(
-        key="asic_count",
-        name="ASIC Count",
-        icon="mdi:chip",
+        key="wifi_rssi",
+        name="WiFi Signal Strength",
+        native_unit_of_measurement="dBm",
+        device_class=SensorDeviceClass.SIGNAL_STRENGTH,
         state_class=SensorStateClass.MEASUREMENT,
-        value_fn=lambda data: data.get("asicCount", 0),
+        icon="mdi:wifi",
+        value_fn=lambda data: data.get("wifiRSSI", 0),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="ssid",
+        name="WiFi SSID",
+        icon="mdi:wifi",
+        value_fn=lambda data: data.get("ssid", "Unknown"),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="stratum_url",
+        name="Stratum URL",
+        icon="mdi:server",
+        value_fn=lambda data: data.get("stratumURL", "Unknown"),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="stratum_port",
+        name="Stratum Port",
+        icon="mdi:server-network",
+        value_fn=lambda data: data.get("stratumPort", 0),
     ),
 )
 
