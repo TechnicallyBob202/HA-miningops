@@ -1,0 +1,36 @@
+<svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <!-- Pickaxe handle -->
+  <rect x="115" y="30" width="8" height="160" fill="#8B4513" rx="4"/>
+  
+  <!-- Pickaxe head left -->
+  <path d="M 80 80 L 60 60 L 70 50 L 90 70 Z" fill="#C0C0C0" stroke="#808080" stroke-width="1"/>
+  
+  <!-- Pickaxe head right (mining bit) -->
+  <path d="M 140 80 L 160 60 L 170 70 L 150 90 Z" fill="#FFD700" stroke="#DAA520" stroke-width="1"/>
+  
+  <!-- Circuit board elements (bottom) -->
+  <circle cx="128" cy="210" r="25" fill="none" stroke="#1E90FF" stroke-width="2"/>
+  
+  <!-- Circuit traces -->
+  <line x1="103" y1="210" x2="128" y2="210" stroke="#1E90FF" stroke-width="1.5"/>
+  <line x1="153" y1="210" x2="128" y2="210" stroke="#1E90FF" stroke-width="1.5"/>
+  <line x1="128" y1="185" x2="128" y2="210" stroke="#1E90FF" stroke-width="1.5"/>
+  <line x1="128" y1="210" x2="128" y2="235" stroke="#1E90FF" stroke-width="1.5"/>
+  
+  <!-- Circuit nodes -->
+  <circle cx="103" cy="210" r="3" fill="#1E90FF"/>
+  <circle cx="153" cy="210" r="3" fill="#1E90FF"/>
+  <circle cx="128" cy="185" r="3" fill="#1E90FF"/>
+  <circle cx="128" cy="235" r="3" fill="#1E90FF"/>
+  
+  <!-- Mining symbols (hash rate representation) -->
+  <circle cx="128" cy="210" r="4" fill="#FFD700"/>
+  
+  <!-- Accent bars (representing activity/mining) -->
+  <rect x="200" y="100" width="3" height="40" fill="#00FF00" rx="1.5"/>
+  <rect x="210" y="80" width="3" height="60" fill="#00FF00" rx="1.5"/>
+  <rect x="220" y="110" width="3" height="30" fill="#00FF00" rx="1.5"/>
+  
+  <!-- Glow effect for accent -->
+  <circle cx="210" cy="110" r="20" fill="none" stroke="#00FF00" stroke-width="0.5" opacity="0.3"/>
+</svg>

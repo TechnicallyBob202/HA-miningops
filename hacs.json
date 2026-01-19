@@ -1,0 +1,9 @@
+{
+  "name": "Mining Ops",
+  "content_in_root": false,
+  "filename": "miningops",
+  "homeassistant": "2024.1.0",
+  "render_readme": true,
+  "country": ["US"],
+  "domains": ["sensor"]
+}
