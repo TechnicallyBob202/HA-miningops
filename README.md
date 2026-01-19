@@ -112,16 +112,36 @@ custom_components/miningops/
 | Pool | Current pool in use | - |
 | Firmware Version | Miner firmware version | Version string |
 
-### Bitaxe Sensors (Per Miner)
+### Bitaxe Sensors (Per Miner - 26 Total)
 
 | Sensor | Description | Unit |
 |--------|-------------|------|
+| Device Model | Miner model name | - |
+| Connected | Pool connection status | Yes/No |
 | Hashrate | Current mining hashrate | H/s |
-| Uptime | Total uptime | Seconds |
+| Shares Accepted | Total accepted shares | - |
+| Shares Rejected | Total rejected shares | - |
+| Best Share Difficulty | Best share achieved | - |
+| Total Best Difficulty | Total best difficulty | - |
+| Pool Difficulty | Current pool difficulty | - |
+| Blocks Found (This Pool) | Blocks found on current pool | - |
+| Total Blocks Found | All-time blocks found | - |
 | Temperature | Device temperature | °C |
+| Voltage Regulator Temperature | VR temperature | °C |
 | Power Consumption | Current power draw | W |
-| Efficiency | Power efficiency | J/GH |
+| Core Voltage | Core voltage setting | mV |
+| Core Voltage Actual | Actual core voltage | mV |
+| Fan Speed | Fan speed percentage | % |
+| Fan RPM | Fan speed in RPM | RPM |
+| Auto Fan Speed Mode | Auto cooling enabled | - |
+| Uptime | Total device uptime | Seconds |
+| Core Frequency | Operating frequency | MHz |
 | ASIC Count | Number of ASIC chips | - |
+| Efficiency | Power efficiency | J/GH |
+| WiFi Signal Strength | WiFi RSSI signal | dBm |
+| WiFi SSID | Connected WiFi network | - |
+| Stratum URL | Mining pool URL | - |
+| Stratum Port | Mining pool port | - |
 
 ## 🎉 Events
 
