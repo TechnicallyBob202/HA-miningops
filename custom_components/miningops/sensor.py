@@ -127,7 +127,7 @@ NMMINER_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
         name="Hashrate",
         native_unit_of_measurement="KH/s",
         state_class=SensorStateClass.MEASUREMENT,
-        icon="mdi:chip",
+        icon="mdi:pickaxe",
         value_fn=lambda data: round(parse_hashrate_nmminer(data.get("HashRate", "0")), 2),
     ),
     MiningOpsSensorEntityDescription(
@@ -211,8 +211,8 @@ BITAXE_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
         name="Hashrate",
         native_unit_of_measurement="GH/s",
         state_class=SensorStateClass.MEASUREMENT,
-        icon="mdi:chip",
-        value_fn=lambda data: round(data.get("hashRate", 0) / 1_000_000_000, 2),
+        icon="mdi:pickaxe",
+        value_fn=lambda data: data.get("hashRate", 0),
     ),
     MiningOpsSensorEntityDescription(
         key="shares_accepted",

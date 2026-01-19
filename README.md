@@ -429,6 +429,22 @@ MIT License - See LICENSE file
 
 ## 🔄 Changelog
 
+## v0.1.3 (2025-01-19)
+
+### Fixed
+- **Hashrate Units**: Corrected sensor display units
+  - Bitaxe: Now displays GH/s (instead of H/s)
+  - NMMiner: Now displays KH/s (instead of H/s)
+- **Template Sensors**: Simplified aggregation sensors to remove redundant unit conversion
+
+## v0.1.2 (2025-01-19)
+
+### Added
+- **Sensor Platform**: Merged NMMiner and Bitaxe into unified integration
+  - Support for both device types in single integration
+  - Comprehensive sensor coverage (25+ sensors per Bitaxe, 9 per NMMiner)
+  - Proper device registry integration
+  
 ### v1.0.0 (Initial Release)
 - ✅ Merged NMMiner and Bitaxe integrations
 - ✅ Unified config flow
