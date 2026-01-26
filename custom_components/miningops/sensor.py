@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import datetime
 import logging
 from typing import Any
 
@@ -118,6 +119,18 @@ def _calculate_efficiency(data: dict[str, Any]) -> float:
     return 0
 
 
+def _format_timestamp(timestamp_ms: int | float) -> str:
+    """Format millisecond timestamp to readable format."""
+    if not timestamp_ms or timestamp_ms == 0:
+        return "Never"
+    try:
+        timestamp_s = timestamp_ms / 1000
+        dt = datetime.fromtimestamp(timestamp_s)
+        return dt.strftime("%Y-%m-%d %H:%M:%S")
+    except (ValueError, OSError):
+        return "Unknown"
+
+
 # ============================================================================
 # NMMiner Sensor Types
 # ============================================================================
@@ -190,11 +203,10 @@ NMMINER_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
 )
 
 # ============================================================================
-# Bitaxe Sensor Types (26 sensors - comprehensive monitoring)
+# Bitaxe Sensor Types
 # ============================================================================
 
 BITAXE_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
-    # Device Info
     MiningOpsSensorEntityDescription(
         key="device_model",
         name="Device Model",
@@ -207,8 +219,6 @@ BITAXE_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
         icon="mdi:lan-connect",
         value_fn=lambda data: "Yes" if data.get("stratum", {}).get("pools", [{}])[0].get("connected", False) else "No",
     ),
-    
-    # Mining Stats
     MiningOpsSensorEntityDescription(
         key="hashrate",
         name="Hashrate",
@@ -252,8 +262,6 @@ BITAXE_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
         icon="mdi:target",
         value_fn=lambda data: data.get("poolDifficulty", 0),
     ),
-    
-    # Block Detection
     MiningOpsSensorEntityDescription(
         key="blocks_found",
         name="Blocks Found (This Pool)",
@@ -268,8 +276,6 @@ BITAXE_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
         icon="mdi:diamond-multiple",
         value_fn=lambda data: data.get("totalFoundBlocks", 0),
     ),
-    
-    # Temperature
     MiningOpsSensorEntityDescription(
         key="temperature",
         name="Temperature",
@@ -286,8 +292,6 @@ BITAXE_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda data: data.get("vrTemp", 0),
     ),
-    
-    # Power
     MiningOpsSensorEntityDescription(
         key="power",
         name="Power Consumption",
@@ -296,8 +300,6 @@ BITAXE_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda data: data.get("power", 0),
     ),
-    
-    # Voltage
     MiningOpsSensorEntityDescription(
         key="core_voltage",
         name="Core Voltage",
@@ -314,8 +316,6 @@ BITAXE_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda data: data.get("coreVoltageActual", 0),
     ),
-    
-    # Cooling
     MiningOpsSensorEntityDescription(
         key="fan_speed",
         name="Fan Speed",
@@ -338,8 +338,6 @@ BITAXE_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
         icon="mdi:fan-auto",
         value_fn=lambda data: data.get("autofanspeed", 0),
     ),
-    
-    # System
     MiningOpsSensorEntityDescription(
         key="uptime",
         name="Uptime",
@@ -363,8 +361,6 @@ BITAXE_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda data: data.get("asicCount", 0),
     ),
-    
-    # Efficiency
     MiningOpsSensorEntityDescription(
         key="efficiency",
         name="Efficiency",
@@ -373,8 +369,6 @@ BITAXE_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
         icon="mdi:leaf",
         value_fn=lambda data: _calculate_efficiency(data),
     ),
-    
-    # Network & Pool
     MiningOpsSensorEntityDescription(
         key="wifi_rssi",
         name="WiFi Signal Strength",
@@ -405,11 +399,10 @@ BITAXE_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
 )
 
 # ============================================================================
-# Pool Sensor Types (ckstats API - 25 sensors)
+# Pool Sensor Types (ckstats API)
 # ============================================================================
 
 POOL_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
-    # Pool Status & Activity
     MiningOpsSensorEntityDescription(
         key="pool_id",
         name="Pool ID",
@@ -430,8 +423,6 @@ POOL_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
         icon="mdi:clock-check-outline",
         value_fn=lambda data: data.get("timestamp", "Unknown"),
     ),
-    
-    # Pool Users & Workers
     MiningOpsSensorEntityDescription(
         key="pool_users",
         name="Connected Users",
@@ -460,8 +451,6 @@ POOL_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
         icon="mdi:lan-disconnect",
         value_fn=lambda data: data.get("disconnected", 0),
     ),
-    
-    # Hashrate Metrics (multiple timeframes)
     MiningOpsSensorEntityDescription(
         key="pool_hashrate_1m",
         name="Pool Hashrate (1m)",
@@ -518,8 +507,6 @@ POOL_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
         icon="mdi:speedometer",
         value_fn=lambda data: data.get("hashrate7d", 0),
     ),
-    
-    # Difficulty
     MiningOpsSensorEntityDescription(
         key="pool_difficulty",
         name="Network Difficulty",
@@ -534,8 +521,6 @@ POOL_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
         icon="mdi:star",
         value_fn=lambda data: data.get("bestshare", 0),
     ),
-    
-    # Shares
     MiningOpsSensorEntityDescription(
         key="pool_shares_accepted",
         name="Total Shares Accepted",
@@ -550,8 +535,6 @@ POOL_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
         icon="mdi:close-circle",
         value_fn=lambda data: data.get("rejected", 0),
     ),
-    
-    # Shares Per Second
     MiningOpsSensorEntityDescription(
         key="pool_sps_1m",
         name="Shares Per Second (1m)",
@@ -587,19 +570,16 @@ POOL_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
 )
 
 # ============================================================================
-# User Sensor Types (Primary/First User Stats - from /api/users)
+# User Sensor Types (Primary user from /api/users)
 # ============================================================================
 
 USER_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
-    # User Identity
     MiningOpsSensorEntityDescription(
         key="user_address",
         name="User Address",
         icon="mdi:wallet",
         value_fn=lambda data: data.get("userAddress", "Unknown"),
     ),
-    
-    # User Hashrate
     MiningOpsSensorEntityDescription(
         key="user_hashrate_1h",
         name="User Hashrate (1h)",
@@ -616,8 +596,6 @@ USER_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
         icon="mdi:speedometer",
         value_fn=lambda data: data.get("hashrate1d", 0),
     ),
-    
-    # User Shares
     MiningOpsSensorEntityDescription(
         key="user_shares",
         name="User Total Shares",
@@ -625,8 +603,6 @@ USER_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
         icon="mdi:share",
         value_fn=lambda data: data.get("shares", 0),
     ),
-    
-    # User Best Share
     MiningOpsSensorEntityDescription(
         key="user_best_share",
         name="User Best Share Difficulty",
@@ -634,8 +610,6 @@ USER_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
         icon="mdi:star",
         value_fn=lambda data: data.get("bestEver", 0),
     ),
-    
-    # User Workers
     MiningOpsSensorEntityDescription(
         key="user_workers",
         name="User Worker Count",
@@ -643,8 +617,6 @@ USER_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
         icon="mdi:lan-connect",
         value_fn=lambda data: data.get("workerCount", 0),
     ),
-    
-    # User Last Share
     MiningOpsSensorEntityDescription(
         key="user_last_share",
         name="User Last Share Time",
@@ -653,19 +625,7 @@ USER_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
     ),
 )
 
-# Helper function for timestamp formatting
-def _format_timestamp(timestamp_ms: int | float) -> str:
-    """Format millisecond timestamp to readable format."""
-    if not timestamp_ms or timestamp_ms == 0:
-        return "Never"
-    try:
-        from datetime import datetime
-        timestamp_s = timestamp_ms / 1000
-        dt = datetime.fromtimestamp(timestamp_s)
-        return dt.strftime("%Y-%m-%d %H:%M:%S")
-    except (ValueError, OSError):
-        return "Unknown"
-    
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -726,9 +686,10 @@ async def async_setup_entry(
 
     @callback
     def async_add_pool_sensors() -> None:
-        """Add sensors for pool data."""
+        """Add sensors for pool and user data."""
         new_entities: list[MiningOpsSensor] = []
         
+        # Add pool sensors (25 sensors)
         if "pool" not in created_miners:
             _LOGGER.info("Creating sensors for pool")
             created_miners.add("pool")
@@ -742,6 +703,23 @@ async def async_setup_entry(
                         device_type,
                     )
                 )
+        
+        # Add user sensors (7 sensors from primary user)
+        if "user" not in created_miners:
+            user = coordinator.get_primary_user()
+            if user:
+                _LOGGER.info("Creating sensors for primary user")
+                created_miners.add("user")
+                
+                for description in USER_SENSOR_TYPES:
+                    new_entities.append(
+                        MiningOpsSensor(
+                            coordinator,
+                            "user",
+                            description,
+                            device_type,
+                        )
+                    )
         
         if new_entities:
             async_add_entities(new_entities)
@@ -777,26 +755,31 @@ class MiningOpsSensor(CoordinatorEntity, SensorEntity):
         safe_ip = miner_ip.replace(".", "_")
         self._attr_unique_id = f"{device_type}_{safe_ip}_{description.key}"
         
-        # Device info
+        # Device info setup
         if device_type == DEVICE_TYPE_NMMINER:
             device_name = f"NMMiner {miner_ip}"
             manufacturer = "NMTech"
             model = "NMMiner"
+            device_id = miner_ip
         elif device_type == DEVICE_TYPE_BITAXE:
             device_name = f"Bitaxe {miner_ip}"
             manufacturer = "Rigol"
             model = "BitAxe"
+            device_id = miner_ip
         elif device_type == DEVICE_TYPE_POOL:
             device_name = "Mining Pool (ckpool)"
             manufacturer = "ckpool"
             model = "ckpool (ckstats)"
+            # CRITICAL: Use same format as PoolCoordinator creates
+            device_id = f"pool_{coordinator.host}_{coordinator.port}"
         else:
             device_name = "Unknown"
             manufacturer = "Unknown"
             model = "Unknown"
+            device_id = "unknown"
         
         self._attr_device_info = {
-            "identifiers": {(DOMAIN, miner_ip)},
+            "identifiers": {(DOMAIN, device_id)},
             "name": device_name,
             "manufacturer": manufacturer,
             "model": model,
@@ -816,7 +799,10 @@ class MiningOpsSensor(CoordinatorEntity, SensorEntity):
             data = self.coordinator.miners[self._miner_ip]
             return data.get("available", True)
         elif self._device_type == DEVICE_TYPE_POOL:
-            return bool(self.coordinator.pool_data)
+            if self._miner_ip == "user":
+                return self.coordinator.get_primary_user() is not None
+            else:
+                return bool(self.coordinator.pool_data)
         
         return False
 
@@ -834,9 +820,17 @@ class MiningOpsSensor(CoordinatorEntity, SensorEntity):
             if not data.get("available", True):
                 return None
         elif self._device_type == DEVICE_TYPE_POOL:
-            data = self.coordinator.pool_data
-            if not data:
-                return None
+            if self._miner_ip == "user":
+                # User sensor - get primary user data
+                user = self.coordinator.get_primary_user()
+                data = user
+                if not data:
+                    return None
+            else:
+                # Pool sensor - get pool data
+                data = self.coordinator.pool_data
+                if not data:
+                    return None
         else:
             return None
         
