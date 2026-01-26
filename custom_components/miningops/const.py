@@ -9,6 +9,7 @@ DOMAIN: Final = "miningops"
 
 DEVICE_TYPE_NMMINER: Final = "nmminer"    # UDP-based ESP32 Bitcoin miners
 DEVICE_TYPE_BITAXE: Final = "bitaxe"      # Rigol Bitaxe HTTP API miners
+DEVICE_TYPE_POOL: Final = "pool"          # Mining pool (ckpool) statistics
 
 # ============================================================================
 # NMMiner UDP CONFIGURATION
@@ -32,6 +33,21 @@ BITAXE_API_INFO_ENDPOINT: Final = "/api/system/info"
 BITAXE_API_STATS_ENDPOINT: Final = "/api/system/metrics"
 
 # ============================================================================
+# Pool (ckstats) HTTP CONFIGURATION
+# ============================================================================
+
+POOL_DEFAULT_HOST: Final = "localhost"
+POOL_DEFAULT_PORT: Final = 5000
+POOL_DEFAULT_POLL_INTERVAL: Final = 300  # 5 minutes for pool stats
+
+POOL_API_CURRENT_ENDPOINT: Final = "/pool/current"
+POOL_API_HISTORY_ENDPOINT: Final = "/pool/history"
+POOL_API_UPTIME_ENDPOINT: Final = "/pool/uptime"
+POOL_API_USERS_ENDPOINT: Final = "/users"
+POOL_API_WORKERS_ENDPOINT: Final = "/workers"
+POOL_API_HEALTH_ENDPOINT: Final = "/health"
+
+# ============================================================================
 # CONFIG FLOW KEYS
 # ============================================================================
 
@@ -46,6 +62,10 @@ CONF_CONCURRENCY: Final = "concurrency"
 CONF_TIMEOUT: Final = "timeout"
 CONF_SCAN_INTERVAL: Final = "scan_interval"
 CONF_MINERS: Final = "miners"
+
+# Pool keys
+CONF_POOL_HOST: Final = "pool_host"
+CONF_POOL_PORT: Final = "pool_port"
 
 # ============================================================================
 # PLATFORMS
@@ -70,3 +90,6 @@ MODEL_NMMINER: Final = "NMMiner"
 
 MANUFACTURER_BITAXE: Final = "Rigol"
 MODEL_BITAXE: Final = "BitAxe"
+
+MANUFACTURER_CKPOOL: Final = "ckpool"
+MODEL_CKPOOL: Final = "ckpool (ckstats)"

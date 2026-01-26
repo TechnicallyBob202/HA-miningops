@@ -393,6 +393,187 @@ BITAXE_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
     ),
 )
 
+# ============================================================================
+# Pool Sensor Types (ckstats API)
+# ============================================================================
+
+POOL_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
+    # Pool Status & Activity
+    MiningOpsSensorEntityDescription(
+        key="pool_id",
+        name="Pool ID",
+        icon="mdi:identifier",
+        value_fn=lambda data: data.get("id", "Unknown"),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="pool_runtime",
+        name="Pool Runtime",
+        native_unit_of_measurement=UnitOfTime.SECONDS,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        icon="mdi:clock-outline",
+        value_fn=lambda data: data.get("runtime", 0),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="pool_timestamp",
+        name="Pool Last Update",
+        icon="mdi:clock-check-outline",
+        value_fn=lambda data: data.get("timestamp", "Unknown"),
+    ),
+    
+    # Pool Users & Workers
+    MiningOpsSensorEntityDescription(
+        key="pool_users",
+        name="Connected Users",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:account-multiple",
+        value_fn=lambda data: data.get("users", 0),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="pool_workers",
+        name="Connected Workers",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:lan-connect",
+        value_fn=lambda data: data.get("workers", 0),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="pool_idle",
+        name="Idle Workers",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:sleep",
+        value_fn=lambda data: data.get("idle", 0),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="pool_disconnected",
+        name="Disconnected Workers",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:lan-disconnect",
+        value_fn=lambda data: data.get("disconnected", 0),
+    ),
+    
+    # Hashrate Metrics (multiple timeframes)
+    MiningOpsSensorEntityDescription(
+        key="pool_hashrate_1m",
+        name="Pool Hashrate (1m)",
+        native_unit_of_measurement="H/s",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:speedometer",
+        value_fn=lambda data: data.get("hashrate1m", 0),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="pool_hashrate_5m",
+        name="Pool Hashrate (5m)",
+        native_unit_of_measurement="H/s",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:speedometer",
+        value_fn=lambda data: data.get("hashrate5m", 0),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="pool_hashrate_15m",
+        name="Pool Hashrate (15m)",
+        native_unit_of_measurement="H/s",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:speedometer",
+        value_fn=lambda data: data.get("hashrate15m", 0),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="pool_hashrate_1h",
+        name="Pool Hashrate (1h)",
+        native_unit_of_measurement="H/s",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:speedometer",
+        value_fn=lambda data: data.get("hashrate1hr", 0),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="pool_hashrate_6h",
+        name="Pool Hashrate (6h)",
+        native_unit_of_measurement="H/s",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:speedometer",
+        value_fn=lambda data: data.get("hashrate6hr", 0),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="pool_hashrate_1d",
+        name="Pool Hashrate (24h)",
+        native_unit_of_measurement="H/s",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:speedometer",
+        value_fn=lambda data: data.get("hashrate1d", 0),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="pool_hashrate_7d",
+        name="Pool Hashrate (7d)",
+        native_unit_of_measurement="H/s",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:speedometer",
+        value_fn=lambda data: data.get("hashrate7d", 0),
+    ),
+    
+    # Difficulty
+    MiningOpsSensorEntityDescription(
+        key="pool_difficulty",
+        name="Network Difficulty",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:target",
+        value_fn=lambda data: data.get("diff", 0),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="pool_best_share",
+        name="Best Share Difficulty",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:star",
+        value_fn=lambda data: data.get("bestshare", 0),
+    ),
+    
+    # Shares
+    MiningOpsSensorEntityDescription(
+        key="pool_shares_accepted",
+        name="Total Shares Accepted",
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        icon="mdi:check-circle",
+        value_fn=lambda data: data.get("accepted", 0),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="pool_shares_rejected",
+        name="Total Shares Rejected",
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        icon="mdi:close-circle",
+        value_fn=lambda data: data.get("rejected", 0),
+    ),
+    
+    # Shares Per Second
+    MiningOpsSensorEntityDescription(
+        key="pool_sps_1m",
+        name="Shares Per Second (1m)",
+        native_unit_of_measurement="SPS",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:share",
+        value_fn=lambda data: data.get("SPS1m", 0),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="pool_sps_5m",
+        name="Shares Per Second (5m)",
+        native_unit_of_measurement="SPS",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:share",
+        value_fn=lambda data: data.get("SPS5m", 0),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="pool_sps_15m",
+        name="Shares Per Second (15m)",
+        native_unit_of_measurement="SPS",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:share",
+        value_fn=lambda data: data.get("SPS15m", 0),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="pool_sps_1h",
+        name="Shares Per Second (1h)",
+        native_unit_of_measurement="SPS",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:share",
+        value_fn=lambda data: data.get("SPS1h", 0),
+    ),
+)
 
 async def async_setup_entry(
     hass: HomeAssistant,

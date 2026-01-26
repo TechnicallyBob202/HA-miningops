@@ -19,17 +19,22 @@ from .const import (
     CONF_DEVICE_TYPE,
     CONF_MINERS,
     CONF_PORT,
+    CONF_POOL_HOST,
+    CONF_POOL_PORT,
     CONF_SCAN_INTERVAL,
     CONF_SUBNET,
     CONF_TIMEOUT,
     DEVICE_TYPE_BITAXE,
     DEVICE_TYPE_NMMINER,
+    DEVICE_TYPE_POOL,
     BITAXE_DEFAULT_CONCURRENCY,
     BITAXE_DEFAULT_SCAN_INTERVAL,
     BITAXE_DEFAULT_SUBNET,
     BITAXE_DEFAULT_TIMEOUT,
     DOMAIN,
     NMMINER_DEFAULT_PORT,
+    POOL_DEFAULT_HOST,
+    POOL_DEFAULT_PORT,
 )
 from .discovery_bitaxe import discover_miners
 
@@ -46,6 +51,10 @@ class InvalidPort(HomeAssistantError):
 
 class DiscoveryFailed(HomeAssistantError):
     """Error to indicate discovery failed."""
+
+
+class PoolConnectionFailed(HomeAssistantError):
+    """Error to indicate pool connection failed."""
 
 
 class MiningOpsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -71,6 +80,8 @@ class MiningOpsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return await self.async_step_nmminer_config()
             elif self.device_type == DEVICE_TYPE_BITAXE:
                 return await self.async_step_bitaxe_config()
+            elif self.device_type == DEVICE_TYPE_POOL:
+                return await self.async_step_pool_config()
         
         return self.async_show_form(
             step_id="user",
@@ -80,6 +91,7 @@ class MiningOpsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         {
                             DEVICE_TYPE_NMMINER: "NMMiner (UDP Broadcast)",
                             DEVICE_TYPE_BITAXE: "Bitaxe (HTTP API)",
+                            DEVICE_TYPE_POOL: "Mining Pool (ckpool)",
                         }
                     ),
                 }
@@ -291,5 +303,70 @@ class MiningOpsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             description_placeholders={
                 "subnet": self.config_data[CONF_SUBNET],
                 "count": str(len(self.discovered_miners)),
+            },
+        )
+
+    async def async_step_pool_config(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Configure Pool (ckpool) settings."""
+        errors: dict[str, str] = {}
+        
+        if user_input is not None:
+            host = user_input[CONF_POOL_HOST]
+            port = user_input[CONF_POOL_PORT]
+            
+            # Validate port
+            if not 1 <= port <= 65535:
+                errors[CONF_POOL_PORT] = "invalid_port"
+            
+            # Validate host
+            if not host or host.isspace():
+                errors[CONF_POOL_HOST] = "invalid_host"
+            
+            if not errors:
+                # Test connection to pool API
+                try:
+                    import aiohttp
+                    url = f"http://{host}:{port}/api/health"
+                    timeout = aiohttp.ClientTimeout(total=5)
+                    
+                    async with aiohttp.ClientSession(timeout=timeout) as session:
+                        async with session.get(url) as response:
+                            if response.status != 200:
+                                errors["base"] = "pool_connection_failed"
+                except Exception as err:  # pylint: disable=broad-except
+                    _LOGGER.debug("Pool connection test failed: %s", err)
+                    errors["base"] = "pool_connection_failed"
+            
+            if not errors:
+                # Check if already configured
+                await self.async_set_unique_id(f"pool_{host}_{port}")
+                self._abort_if_unique_id_configured()
+                
+                # Store config and create entry
+                config_data = {
+                    CONF_DEVICE_TYPE: DEVICE_TYPE_POOL,
+                    CONF_POOL_HOST: host,
+                    CONF_POOL_PORT: port,
+                }
+                
+                return self.async_create_entry(
+                    title=f"Pool ({host}:{port})",
+                    data=config_data,
+                )
+        
+        return self.async_show_form(
+            step_id="pool_config",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(CONF_POOL_HOST, default=POOL_DEFAULT_HOST): str,
+                    vol.Optional(CONF_POOL_PORT, default=POOL_DEFAULT_PORT): int,
+                }
+            ),
+            errors=errors,
+            description_placeholders={
+                "default_host": POOL_DEFAULT_HOST,
+                "default_port": str(POOL_DEFAULT_PORT),
             },
         )

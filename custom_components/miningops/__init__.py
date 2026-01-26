@@ -7,9 +7,10 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
-from .const import CONF_DEVICE_TYPE, DEVICE_TYPE_NMMINER, DEVICE_TYPE_BITAXE, DOMAIN
+from .const import CONF_DEVICE_TYPE, DEVICE_TYPE_NMMINER, DEVICE_TYPE_BITAXE, DEVICE_TYPE_POOL, DOMAIN
 from .coordinator_nmminer import NMMinerDataCoordinator
 from .coordinator_bitaxe import BitaxeCoordinator
+from .coordinator_pool import PoolCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -34,6 +35,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         elif device_type == DEVICE_TYPE_BITAXE:
             # Setup Bitaxe (HTTP API polling)
             coordinator = BitaxeCoordinator(hass, entry.data)
+            coordinator._config_entry_id = entry.entry_id
+            await coordinator.async_config_entry_first_refresh()
+        
+        elif device_type == DEVICE_TYPE_POOL:
+            # Setup Pool (ckstats API polling)
+            coordinator = PoolCoordinator(hass, entry.data)
             coordinator._config_entry_id = entry.entry_id
             await coordinator.async_config_entry_first_refresh()
         
@@ -71,6 +78,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if device_type == DEVICE_TYPE_NMMINER:
             await coordinator.async_stop()
         elif device_type == DEVICE_TYPE_BITAXE:
+            await coordinator.async_shutdown()
+        elif device_type == DEVICE_TYPE_POOL:
             await coordinator.async_shutdown()
     
     return unload_ok
