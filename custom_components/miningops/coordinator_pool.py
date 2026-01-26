@@ -1,4 +1,4 @@
-"""Pool coordinator for Mining Ops integration (ckstats) - EXTENDED with user data."""
+"""Pool coordinator for Mining Ops integration (ckstats)."""
 from __future__ import annotations
 
 import asyncio
@@ -9,15 +9,12 @@ from typing import Any
 import aiohttp
 
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import async_get as async_get_device_registry
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import (
     CONF_POOL_HOST,
     CONF_POOL_PORT,
     DOMAIN,
-    MANUFACTURER_CKPOOL,
-    MODEL_CKPOOL,
     POOL_API_CURRENT_ENDPOINT,
     POOL_API_HEALTH_ENDPOINT,
     POOL_API_USERS_ENDPOINT,
@@ -70,9 +67,6 @@ class PoolCoordinator(DataUpdateCoordinator):
             self.host,
             self.port,
         )
-        
-        # Register pool as device
-        await self._register_pool_device()
         
         # Do initial data fetch
         await self.async_refresh()
@@ -134,20 +128,6 @@ class PoolCoordinator(DataUpdateCoordinator):
         except Exception as err:  # pylint: disable=broad-except
             _LOGGER.error("Error fetching %s: %s", url, err)
             return None
-
-    async def _register_pool_device(self) -> None:
-        """Register pool as device in Home Assistant."""
-        device_registry = async_get_device_registry(self.hass)
-        
-        device_registry.async_get_or_create(
-            config_entry_id=self.config_entry_id,
-            identifiers={(DOMAIN, f"pool_{self.host}_{self.port}")},
-            name="Mining Pool (ckpool)",
-            manufacturer=MANUFACTURER_CKPOOL,
-            model=MODEL_CKPOOL,
-            hw_version=f"{self.host}:{self.port}",
-        )
-        _LOGGER.debug("Registered pool device")
 
     def get_primary_user(self) -> dict[str, Any] | None:
         """Get first/primary user from users list."""
