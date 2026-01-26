@@ -1,4 +1,4 @@
-"""Pool coordinator for Mining Ops integration (ckstats)."""
+"""Pool coordinator for Mining Ops integration (ckstats) - EXTENDED with user data."""
 from __future__ import annotations
 
 import asyncio
@@ -20,6 +20,7 @@ from .const import (
     MODEL_CKPOOL,
     POOL_API_CURRENT_ENDPOINT,
     POOL_API_HEALTH_ENDPOINT,
+    POOL_API_USERS_ENDPOINT,
     POOL_DEFAULT_POLL_INTERVAL,
 )
 
@@ -47,6 +48,9 @@ class PoolCoordinator(DataUpdateCoordinator):
         
         # Current pool data
         self.pool_data: dict[str, Any] = {}
+        
+        # User data (list of users)
+        self.users_data: list[dict[str, Any]] = []
         
         # Base URL for API
         self.base_url = f"http://{self.host}:{self.port}/api"
@@ -78,7 +82,7 @@ class PoolCoordinator(DataUpdateCoordinator):
         pass
 
     async def _async_update_data(self) -> dict[str, Any]:
-        """Fetch current pool statistics."""
+        """Fetch current pool and user statistics."""
         try:
             # Get current pool stats
             current_stats = await self._fetch_api(POOL_API_CURRENT_ENDPOINT)
@@ -90,6 +94,12 @@ class PoolCoordinator(DataUpdateCoordinator):
             # Update stored data
             self.pool_data = current_stats
             
+            # Fetch user data
+            users = await self._fetch_api(POOL_API_USERS_ENDPOINT)
+            if users:
+                self.users_data = users if isinstance(users, list) else []
+                _LOGGER.debug("Updated %d user(s)", len(self.users_data))
+            
             _LOGGER.debug("Updated pool stats: %s", self.pool_data)
             return self.pool_data
         
@@ -97,7 +107,7 @@ class PoolCoordinator(DataUpdateCoordinator):
             _LOGGER.error("Error fetching pool data: %s", err)
             return self.pool_data or {}
 
-    async def _fetch_api(self, endpoint: str) -> dict[str, Any] | None:
+    async def _fetch_api(self, endpoint: str) -> dict[str, Any] | list[dict[str, Any]] | None:
         """Fetch JSON from pool API endpoint."""
         url = f"{self.base_url}{endpoint}"
         
@@ -138,6 +148,12 @@ class PoolCoordinator(DataUpdateCoordinator):
             hw_version=f"{self.host}:{self.port}",
         )
         _LOGGER.debug("Registered pool device")
+
+    def get_primary_user(self) -> dict[str, Any] | None:
+        """Get first/primary user from users list."""
+        if self.users_data and len(self.users_data) > 0:
+            return self.users_data[0]
+        return None
 
     @property
     def config_entry_id(self) -> str | None:

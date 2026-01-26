@@ -586,7 +586,86 @@ POOL_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
     ),
 )
 
+# ============================================================================
+# User Sensor Types (Primary/First User Stats - from /api/users)
+# ============================================================================
 
+USER_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
+    # User Identity
+    MiningOpsSensorEntityDescription(
+        key="user_address",
+        name="User Address",
+        icon="mdi:wallet",
+        value_fn=lambda data: data.get("userAddress", "Unknown"),
+    ),
+    
+    # User Hashrate
+    MiningOpsSensorEntityDescription(
+        key="user_hashrate_1h",
+        name="User Hashrate (1h)",
+        native_unit_of_measurement="H/s",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:speedometer",
+        value_fn=lambda data: data.get("hashrate1hr", 0),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="user_hashrate_1d",
+        name="User Hashrate (24h)",
+        native_unit_of_measurement="H/s",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:speedometer",
+        value_fn=lambda data: data.get("hashrate1d", 0),
+    ),
+    
+    # User Shares
+    MiningOpsSensorEntityDescription(
+        key="user_shares",
+        name="User Total Shares",
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        icon="mdi:share",
+        value_fn=lambda data: data.get("shares", 0),
+    ),
+    
+    # User Best Share
+    MiningOpsSensorEntityDescription(
+        key="user_best_share",
+        name="User Best Share Difficulty",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:star",
+        value_fn=lambda data: data.get("bestEver", 0),
+    ),
+    
+    # User Workers
+    MiningOpsSensorEntityDescription(
+        key="user_workers",
+        name="User Worker Count",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:lan-connect",
+        value_fn=lambda data: data.get("workerCount", 0),
+    ),
+    
+    # User Last Share
+    MiningOpsSensorEntityDescription(
+        key="user_last_share",
+        name="User Last Share Time",
+        icon="mdi:clock-outline",
+        value_fn=lambda data: _format_timestamp(data.get("lastShare", 0)),
+    ),
+)
+
+# Helper function for timestamp formatting
+def _format_timestamp(timestamp_ms: int | float) -> str:
+    """Format millisecond timestamp to readable format."""
+    if not timestamp_ms or timestamp_ms == 0:
+        return "Never"
+    try:
+        from datetime import datetime
+        timestamp_s = timestamp_ms / 1000
+        dt = datetime.fromtimestamp(timestamp_s)
+        return dt.strftime("%Y-%m-%d %H:%M:%S")
+    except (ValueError, OSError):
+        return "Unknown"
+    
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
