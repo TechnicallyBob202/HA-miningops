@@ -691,7 +691,7 @@ async def async_setup_entry(
         
         # Add pool sensors (25 sensors)
         if "pool" not in created_miners:
-            _LOGGER.info("Creating sensors for pool")
+            _LOGGER.info("Creating pool sensors")
             created_miners.add("pool")
             
             for description in sensor_types:
@@ -708,7 +708,7 @@ async def async_setup_entry(
         if "user" not in created_miners:
             user = coordinator.get_primary_user()
             if user:
-                _LOGGER.info("Creating sensors for primary user")
+                _LOGGER.info("Creating user sensors")
                 created_miners.add("user")
                 
                 for description in USER_SENSOR_TYPES:
@@ -720,14 +720,18 @@ async def async_setup_entry(
                             device_type,
                         )
                     )
+            else:
+                _LOGGER.debug("No user data available yet")
         
         if new_entities:
             async_add_entities(new_entities)
 
     # Setup based on device type
     if device_type == DEVICE_TYPE_POOL:
-        async_add_pool_sensors()
+        # For pool, add listener first, then trigger callback
         coordinator.async_add_listener(async_add_pool_sensors)
+        # Call immediately - data should be fetched by now
+        async_add_pool_sensors()
     else:
         coordinator.async_add_listener(async_add_miner_sensors)
         async_add_miner_sensors()
