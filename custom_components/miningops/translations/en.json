@@ -1,0 +1,45 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Bitaxe Configuration",
+        "description": "Configure the subnet to scan for Bitaxe miners and scanning options.",
+        "data": {
+          "subnet": "Subnet (CIDR format)",
+          "concurrency": "Concurrent Scans",
+          "timeout": "Probe Timeout (seconds)",
+          "scan_interval": "Scan Interval (seconds, 0 to disable)"
+        },
+        "data_description": {
+          "subnet": "Network subnet to scan (e.g., 192.168.1.0/24)",
+          "concurrency": "Number of parallel probes (1-100, default: 20)",
+          "timeout": "Timeout per probe in seconds (0.5-10, default: 1.5)",
+          "scan_interval": "How often to re-scan for new miners. Set to 0 to disable periodic scanning."
+        }
+      },
+      "discovery": {
+        "title": "Discovering Miners",
+        "description": "Scanning subnet {subnet} for Bitaxe miners..."
+      },
+      "discovery_none": {
+        "title": "No Miners Found",
+        "description": "No Bitaxe miners were found in subnet {subnet}. You can still proceed to add miners manually, or go back to adjust the subnet."
+      },
+      "select_miners": {
+        "title": "Select Miners",
+        "description": "Found {count} miner(s) in subnet {subnet}. Select which ones you want to monitor."
+      }
+    },
+    "error": {
+      "invalid_subnet": "Invalid subnet format. Use CIDR notation (e.g., 192.168.1.0/24)",
+      "invalid_concurrency": "Concurrency must be between 1 and 100",
+      "invalid_timeout": "Timeout must be between 0.5 and 10 seconds",
+      "invalid_scan_interval": "Scan interval must be 0 or greater",
+      "discovery_failed": "Failed to discover miners. Check your network configuration.",
+      "no_miners_selected": "Please select at least one miner"
+    },
+    "abort": {
+      "already_configured": "Bitaxe integration is already configured"
+    }
+  }
+}
