@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import datetime
 import logging
 from typing import Any
 
@@ -14,8 +15,9 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
-    UnitOfTemperature,
     PERCENTAGE,
+    UnitOfTemperature,
+    UnitOfTime,
 )
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -25,6 +27,7 @@ from .const import (
     CONF_DEVICE_TYPE,
     DEVICE_TYPE_NMMINER,
     DEVICE_TYPE_BITAXE,
+    DEVICE_TYPE_POOL,
     DOMAIN,
 )
 
@@ -59,6 +62,76 @@ def parse_hashrate(hashrate_str: str) -> float:
         return float(hashrate_str)
     except (ValueError, AttributeError):
         return 0.0
+
+
+def parse_nmminer_hashrate(hashrate_str: str) -> float:
+    """Parse NMMiner hashrate string (e.g., '113.13K') to numeric value."""
+    try:
+        hashrate_str = str(hashrate_str).replace("H/s", "").replace("h/s", "").strip()
+        
+        # Remove unit letters and parse
+        for unit in ['M', 'm', 'K', 'k']:
+            if unit in hashrate_str:
+                return float(hashrate_str.replace(unit, "").strip())
+        
+        return float(hashrate_str)
+    except (ValueError, AttributeError):
+        return 0.0
+
+
+def parse_nmminer_difficulty(difficulty_str: str) -> float:
+    """Parse NMMiner difficulty string (e.g., '4.021M') to numeric value."""
+    try:
+        difficulty_str = str(difficulty_str).strip()
+        
+        # Remove unit letters and parse
+        for unit in ['T', 't', 'G', 'g', 'M', 'm', 'K', 'k']:
+            if unit in difficulty_str:
+                return float(difficulty_str.replace(unit, "").strip())
+        
+        return float(difficulty_str)
+    except (ValueError, AttributeError):
+        return 0.0
+
+
+def format_hashrate(hashrate_hs: float | int) -> str:
+    """Format hashrate with dynamic units (TH/s, GH/s, MH/s, KH/s, or H/s)."""
+    try:
+        hashrate = float(hashrate_hs)
+        
+        # Define thresholds and units
+        if hashrate >= 1_000_000_000_000:  # >= 1 TH/s
+            return f"{hashrate / 1_000_000_000_000:.2f} TH/s"
+        elif hashrate >= 1_000_000_000:  # >= 1 GH/s
+            return f"{hashrate / 1_000_000_000:.2f} GH/s"
+        elif hashrate >= 1_000_000:  # >= 1 MH/s
+            return f"{hashrate / 1_000_000:.2f} MH/s"
+        elif hashrate >= 1_000:  # >= 1 KH/s
+            return f"{hashrate / 1_000:.2f} KH/s"
+        else:  # < 1 KH/s, show as H/s
+            return f"{hashrate:.2f} H/s"
+    except (ValueError, TypeError):
+        return "0 H/s"
+
+
+def format_difficulty(difficulty: float | int) -> str:
+    """Format difficulty with dynamic units (T, G, M, K, or raw)."""
+    try:
+        diff = float(difficulty)
+        
+        # Define thresholds and units
+        if diff >= 1_000_000_000_000:  # >= 1 T
+            return f"{diff / 1_000_000_000_000:.2f}T"
+        elif diff >= 1_000_000_000:  # >= 1 G
+            return f"{diff / 1_000_000_000:.2f}G"
+        elif diff >= 1_000_000:  # >= 1 M
+            return f"{diff / 1_000_000:.2f}M"
+        elif diff >= 1_000:  # >= 1 K
+            return f"{diff / 1_000:.2f}K"
+        else:  # < 1 K, show as raw number
+            return f"{diff:.2f}"
+    except (ValueError, TypeError):
+        return "0"
 
 
 def get_share_attributes(data: dict[str, Any]) -> dict[str, Any]:
@@ -116,6 +189,18 @@ def _calculate_efficiency(data: dict[str, Any]) -> float:
     return 0
 
 
+def _format_timestamp(timestamp_ms: int | float) -> str:
+    """Format millisecond timestamp to readable format."""
+    if not timestamp_ms or timestamp_ms == 0:
+        return "Never"
+    try:
+        timestamp_s = timestamp_ms / 1000
+        dt = datetime.fromtimestamp(timestamp_s)
+        return dt.strftime("%Y-%m-%d %H:%M:%S")
+    except (ValueError, OSError):
+        return "Unknown"
+
+
 # ============================================================================
 # NMMiner Sensor Types
 # ============================================================================
@@ -124,10 +209,10 @@ NMMINER_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
     MiningOpsSensorEntityDescription(
         key="hashrate",
         name="Hashrate",
-        native_unit_of_measurement="H/s",
+        native_unit_of_measurement="KH/s",
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:chip",
-        value_fn=lambda data: parse_hashrate(data.get("HashRate", "0")),
+        value_fn=lambda data: parse_nmminer_hashrate(data.get("HashRate", "0")),
     ),
     MiningOpsSensorEntityDescription(
         key="shares",
@@ -146,8 +231,10 @@ NMMINER_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
     MiningOpsSensorEntityDescription(
         key="best_diff",
         name="Best Difficulty",
+        native_unit_of_measurement="M",
         icon="mdi:trophy",
-        value_fn=lambda data: data.get("BestDiff", "0").strip(),
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda data: parse_nmminer_difficulty(data.get("BestDiff", "0")),
         attr_fn=get_difficulty_attributes,
     ),
     MiningOpsSensorEntityDescription(
@@ -229,23 +316,20 @@ BITAXE_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
     MiningOpsSensorEntityDescription(
         key="best_diff",
         name="Best Share Difficulty",
-        state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:star",
-        value_fn=lambda data: data.get("bestDiff", 0),
+        value_fn=lambda data: format_difficulty(data.get("bestDiff", 0)),
     ),
     MiningOpsSensorEntityDescription(
         key="total_best_diff",
         name="Total Best Difficulty",
-        state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:star-circle",
-        value_fn=lambda data: data.get("stratum", {}).get("totalBestDiff", 0),
+        value_fn=lambda data: format_difficulty(data.get("stratum", {}).get("totalBestDiff", 0)),
     ),
     MiningOpsSensorEntityDescription(
         key="pool_difficulty",
         name="Pool Difficulty",
-        state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:target",
-        value_fn=lambda data: data.get("poolDifficulty", 0),
+        value_fn=lambda data: format_difficulty(data.get("poolDifficulty", 0)),
     ),
     MiningOpsSensorEntityDescription(
         key="blocks_found",
@@ -326,6 +410,8 @@ BITAXE_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
     MiningOpsSensorEntityDescription(
         key="uptime",
         name="Uptime",
+        native_unit_of_measurement=UnitOfTime.SECONDS,
+        state_class=SensorStateClass.TOTAL_INCREASING,
         icon="mdi:clock-outline",
         value_fn=lambda data: data.get("uptimeSeconds", 0),
     ),
@@ -381,6 +467,215 @@ BITAXE_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
     ),
 )
 
+# ============================================================================
+# Pool Sensor Types (ckstats API)
+# ============================================================================
+
+POOL_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
+    MiningOpsSensorEntityDescription(
+        key="pool_id",
+        name="Pool ID",
+        icon="mdi:identifier",
+        value_fn=lambda data: data.get("id", "Unknown"),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="pool_runtime",
+        name="Pool Runtime",
+        native_unit_of_measurement=UnitOfTime.SECONDS,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        icon="mdi:clock-outline",
+        value_fn=lambda data: data.get("runtime", 0),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="pool_timestamp",
+        name="Pool Last Update",
+        icon="mdi:clock-check-outline",
+        value_fn=lambda data: data.get("timestamp", "Unknown"),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="pool_users",
+        name="Connected Users",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:account-multiple",
+        value_fn=lambda data: data.get("users", 0),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="pool_workers",
+        name="Connected Workers",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:lan-connect",
+        value_fn=lambda data: data.get("workers", 0),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="pool_idle",
+        name="Idle Workers",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:sleep",
+        value_fn=lambda data: data.get("idle", 0),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="pool_disconnected",
+        name="Disconnected Workers",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:lan-disconnect",
+        value_fn=lambda data: data.get("disconnected", 0),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="pool_hashrate_1m",
+        name="Pool Hashrate (1m)",
+        icon="mdi:speedometer",
+        value_fn=lambda data: format_hashrate(data.get("hashrate1m", 0)),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="pool_hashrate_5m",
+        name="Pool Hashrate (5m)",
+        icon="mdi:speedometer",
+        value_fn=lambda data: format_hashrate(data.get("hashrate5m", 0)),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="pool_hashrate_15m",
+        name="Pool Hashrate (15m)",
+        icon="mdi:speedometer",
+        value_fn=lambda data: format_hashrate(data.get("hashrate15m", 0)),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="pool_hashrate_1h",
+        name="Pool Hashrate (1h)",
+        icon="mdi:speedometer",
+        value_fn=lambda data: format_hashrate(data.get("hashrate1hr", 0)),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="pool_hashrate_6h",
+        name="Pool Hashrate (6h)",
+        icon="mdi:speedometer",
+        value_fn=lambda data: format_hashrate(data.get("hashrate6hr", 0)),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="pool_hashrate_1d",
+        name="Pool Hashrate (24h)",
+        icon="mdi:speedometer",
+        value_fn=lambda data: format_hashrate(data.get("hashrate1d", 0)),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="pool_hashrate_7d",
+        name="Pool Hashrate (7d)",
+        icon="mdi:speedometer",
+        value_fn=lambda data: format_hashrate(data.get("hashrate7d", 0)),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="pool_difficulty",
+        name="Network Difficulty",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:target",
+        value_fn=lambda data: data.get("diff", 0),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="pool_best_share",
+        name="Best Share Difficulty",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:star",
+        value_fn=lambda data: data.get("bestshare", 0),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="pool_shares_accepted",
+        name="Total Shares Accepted",
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        icon="mdi:check-circle",
+        value_fn=lambda data: data.get("accepted", 0),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="pool_shares_rejected",
+        name="Total Shares Rejected",
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        icon="mdi:close-circle",
+        value_fn=lambda data: data.get("rejected", 0),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="pool_sps_1m",
+        name="Shares Per Second (1m)",
+        native_unit_of_measurement="SPS",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:share",
+        value_fn=lambda data: data.get("SPS1m", 0),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="pool_sps_5m",
+        name="Shares Per Second (5m)",
+        native_unit_of_measurement="SPS",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:share",
+        value_fn=lambda data: data.get("SPS5m", 0),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="pool_sps_15m",
+        name="Shares Per Second (15m)",
+        native_unit_of_measurement="SPS",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:share",
+        value_fn=lambda data: data.get("SPS15m", 0),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="pool_sps_1h",
+        name="Shares Per Second (1h)",
+        native_unit_of_measurement="SPS",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:share",
+        value_fn=lambda data: data.get("SPS1h", 0),
+    ),
+)
+
+# ============================================================================
+# User Sensor Types (Primary user from /api/users)
+# ============================================================================
+
+USER_SENSOR_TYPES: tuple[MiningOpsSensorEntityDescription, ...] = (
+    MiningOpsSensorEntityDescription(
+        key="user_address",
+        name="User Address",
+        icon="mdi:wallet",
+        value_fn=lambda data: data.get("userAddress", "Unknown"),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="user_hashrate_1h",
+        name="User Hashrate (1h)",
+        icon="mdi:speedometer",
+        value_fn=lambda data: format_hashrate(data.get("hashrate1hr", 0)),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="user_hashrate_1d",
+        name="User Hashrate (24h)",
+        icon="mdi:speedometer",
+        value_fn=lambda data: format_hashrate(data.get("hashrate1d", 0)),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="user_shares",
+        name="User Total Shares",
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        icon="mdi:share",
+        value_fn=lambda data: data.get("shares", 0),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="user_best_share",
+        name="User Best Share Difficulty",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:star",
+        value_fn=lambda data: data.get("bestEver", 0),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="user_workers",
+        name="User Worker Count",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:lan-connect",
+        value_fn=lambda data: data.get("workerCount", 0),
+    ),
+    MiningOpsSensorEntityDescription(
+        key="user_last_share",
+        name="User Last Share Time",
+        icon="mdi:clock-outline",
+        value_fn=lambda data: _format_timestamp(data.get("lastShare", 0)),
+    ),
+)
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -400,6 +695,8 @@ async def async_setup_entry(
         sensor_types = NMMINER_SENSOR_TYPES
     elif device_type == DEVICE_TYPE_BITAXE:
         sensor_types = BITAXE_SENSOR_TYPES
+    elif device_type == DEVICE_TYPE_POOL:
+        sensor_types = POOL_SENSOR_TYPES
     else:
         _LOGGER.error("Unknown device type: %s", device_type)
         return
@@ -438,8 +735,57 @@ async def async_setup_entry(
         if new_entities:
             async_add_entities(new_entities)
 
-    coordinator.async_add_listener(async_add_miner_sensors)
-    async_add_miner_sensors()
+    @callback
+    def async_add_pool_sensors() -> None:
+        """Add sensors for pool and user data."""
+        new_entities: list[MiningOpsSensor] = []
+        
+        # Add pool sensors (25 sensors)
+        if "pool" not in created_miners:
+            _LOGGER.info("Creating pool sensors")
+            created_miners.add("pool")
+            
+            for description in sensor_types:
+                new_entities.append(
+                    MiningOpsSensor(
+                        coordinator,
+                        "pool",
+                        description,
+                        device_type,
+                    )
+                )
+        
+        # Add user sensors (7 sensors from primary user)
+        if "user" not in created_miners:
+            user = coordinator.get_primary_user()
+            if user:
+                _LOGGER.info("Creating user sensors")
+                created_miners.add("user")
+                
+                for description in USER_SENSOR_TYPES:
+                    new_entities.append(
+                        MiningOpsSensor(
+                            coordinator,
+                            "user",
+                            description,
+                            device_type,
+                        )
+                    )
+            else:
+                _LOGGER.debug("No user data available yet")
+        
+        if new_entities:
+            async_add_entities(new_entities)
+
+    # Setup based on device type
+    if device_type == DEVICE_TYPE_POOL:
+        # For pool, add listener first, then trigger callback
+        coordinator.async_add_listener(async_add_pool_sensors)
+        # Call immediately - data should be fetched by now
+        async_add_pool_sensors()
+    else:
+        coordinator.async_add_listener(async_add_miner_sensors)
+        async_add_miner_sensors()
 
 
 class MiningOpsSensor(CoordinatorEntity, SensorEntity):
@@ -475,6 +821,12 @@ class MiningOpsSensor(CoordinatorEntity, SensorEntity):
             manufacturer = "Rigol"
             model = "BitAxe"
             device_id = miner_ip
+        elif device_type == DEVICE_TYPE_POOL:
+            device_name = "Mining Pool (ckpool)"
+            manufacturer = "ckpool"
+            model = "ckpool (ckstats)"
+            # CRITICAL: Use same format as PoolCoordinator creates
+            device_id = f"pool_{coordinator.host}_{coordinator.port}"
         else:
             device_name = "Unknown"
             manufacturer = "Unknown"
@@ -501,6 +853,11 @@ class MiningOpsSensor(CoordinatorEntity, SensorEntity):
                 return False
             data = self.coordinator.miners[self._miner_ip]
             return data.get("available", True)
+        elif self._device_type == DEVICE_TYPE_POOL:
+            if self._miner_ip == "user":
+                return self.coordinator.get_primary_user() is not None
+            else:
+                return bool(self.coordinator.pool_data)
         
         return False
 
@@ -517,6 +874,18 @@ class MiningOpsSensor(CoordinatorEntity, SensorEntity):
             data = self.coordinator.miners[self._miner_ip]
             if not data.get("available", True):
                 return None
+        elif self._device_type == DEVICE_TYPE_POOL:
+            if self._miner_ip == "user":
+                # User sensor - get primary user data
+                user = self.coordinator.get_primary_user()
+                data = user
+                if not data:
+                    return None
+            else:
+                # Pool sensor - get pool data
+                data = self.coordinator.pool_data
+                if not data:
+                    return None
         else:
             return None
         
@@ -525,7 +894,9 @@ class MiningOpsSensor(CoordinatorEntity, SensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
         """Return additional attributes."""
-        if self._device_type == DEVICE_TYPE_NMMINER:
+        if self._device_type == DEVICE_TYPE_POOL:
+            return None
+        elif self._device_type == DEVICE_TYPE_NMMINER:
             if self._miner_ip not in self.coordinator.miners:
                 return None
         else:
